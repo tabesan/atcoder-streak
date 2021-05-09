@@ -8,4 +8,5 @@ func main() {
 	client := ats.NewClient(ats.Name, ats.Repository)
 	client.InitStreak()
 	client.ShowStreak()
+	client.UpdateRoutine()
 }

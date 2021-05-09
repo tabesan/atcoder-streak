@@ -11,6 +11,15 @@ import (
 
 const layout = "2006-01-02"
 
+func setLocation() *time.Location {
+	loc, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		loc = time.FixedZone("Asia/Tokyo", 9*60*60)
+	}
+
+	return loc
+}
+
 type Client struct {
 	name          string
 	repo          string
@@ -19,6 +28,7 @@ type Client struct {
 	LongestStreak int
 	URL           *url.URL
 	HTTPClient    *http.Client
+	location      *time.Location
 }
 
 func NewClient(name, repo string) *Client {
@@ -28,6 +38,7 @@ func NewClient(name, repo string) *Client {
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 15,
 		},
+		location: setLocation(),
 	}
 	c.createURL()
 	return c
@@ -91,12 +102,15 @@ func (c *Client) InitStreak() {
 	commits := c.GetAllCommit()
 	mp := make(map[string]bool)
 	var days []string
-	var t string
+	var t time.Time
+	var formatT string
+
 	for _, v := range commits {
-		t = (v.Commit.Author.Date).Format(layout)
-		if !mp[t] {
-			mp[t] = true
-			days = append(days, t)
+		t = c.convJST(v.Commit.Author.Date)
+		formatT = t.Format(layout)
+		if !mp[formatT] {
+			mp[formatT] = true
+			days = append(days, formatT)
 		}
 	}
 
@@ -104,9 +118,9 @@ func (c *Client) InitStreak() {
 	c.streak = len(days)
 }
 
-func (c *Client) UpdateStreak() {
+func (c *Client) updateStreak() {
 	latest := (c.GetLastCommit())[0]
-	lastDate := latest.Commit.Author.Date
+	lastDate := c.convJST(latest.Commit.Author.Date)
 	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(layout)
 	if c.latestCommit == DayAgo {
 		c.streak += 1
