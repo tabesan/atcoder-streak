@@ -46,13 +46,13 @@ func (c *ChTimer) FlagTimer() {
 }
 
 func (c *ChTimer) UpdateTimer() {
-	const interval = 10
+	const interval = 1
 
 	curTime := c.edit.convToSec(time.Now())
 	initSleep := interval - curTime
 
 	time.Sleep(time.Duration(initSleep) * time.Second)
-	for range time.Tick(interval * time.Second) {
+	for range time.Tick(interval * time.Hour) {
 		c.ChUpdate <- "UpdateStreak"
 	}
 }

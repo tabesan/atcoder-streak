@@ -1,9 +1,7 @@
 package commit
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -19,6 +17,7 @@ type Client struct {
 	URL           *url.URL
 	HTTPClient    *http.Client
 	edit          *editTime
+	getter        Getter
 }
 
 func NewClient(name, repo string) *Client {
@@ -29,10 +28,8 @@ func NewClient(name, repo string) *Client {
 		streak:        0,
 		LongestStreak: 0,
 		updateFlag:    false,
-		HTTPClient: &http.Client{
-			Timeout: time.Second * 15,
-		},
-		edit: NewEditTime(),
+		edit:          NewEditTime(),
+		getter:        NewComGetter(),
 	}
 	c.createURL()
 	return c
@@ -46,7 +43,7 @@ func (c *Client) createURL() {
 	}
 }
 
-func (c *Client) GetLastCommit() []Commits {
+func (c *Client) LastCommitReq() *http.Request {
 	req, err := http.NewRequest("GET", c.URL.String(), nil)
 	if err != nil {
 		fmt.Println(err)
@@ -54,46 +51,21 @@ func (c *Client) GetLastCommit() []Commits {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.URL.Query().Set("per_page", "1")
 
-	var resp []Commits
-	resp = c.GetCommit(req)
-	return resp
+	return req
 }
 
-func (c *Client) GetAllCommit() []Commits {
+func (c *Client) AllCommitReq() *http.Request {
 	req, err := http.NewRequest("GET", c.URL.String(), nil)
 	if err != nil {
 		fmt.Println(err)
 	}
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 
-	var resp []Commits
-	resp = c.GetCommit(req)
-	return resp
-}
-
-func (c *Client) GetCommit(req *http.Request) []Commits {
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	bytes := []byte(body)
-	var data []Commits
-	err = json.Unmarshal(bytes, &data)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return data
+	return req
 }
 
 func (c *Client) InitStreak() {
-	commits := c.GetAllCommit()
+	commits := c.getter.GetCommit(c.AllCommitReq())
 	mp := make(map[string]bool)
 	var days []string
 	var t time.Time
@@ -110,10 +82,11 @@ func (c *Client) InitStreak() {
 
 	c.latestCommit = days[0]
 	c.streak = len(days)
+	c.ShowStreak()
 }
 
 func (c *Client) update() {
-	latest := (c.GetLastCommit())[0]
+	latest := (c.getter.GetCommit(c.LastCommitReq()))[0]
 	lastDate := c.edit.convJST(latest.Commit.Author.Date)
 	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(layout)
 	if c.latestCommit == DayAgo {
