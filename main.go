@@ -1,14 +1,15 @@
 package main
 
 import (
-	ats "atcoder-streak/commit"
+	cmt "atcoder-streak/commit"
+	tm "atcoder-streak/timer"
 	"fmt"
 )
 
 func main() {
-	client := ats.NewClient(ats.Name, ats.Repository)
+	client := cmt.NewClient(cmt.Name, cmt.Repository)
 	client.InitStreak()
-	timer := ats.NewTimer()
+	timer := tm.NewTimer()
 	go timer.FlagTimer()
 	go timer.UpdateTimer()
 

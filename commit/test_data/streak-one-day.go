@@ -1,6 +1,6 @@
 package test_data
 
-const ResultAll = `[
+const StreakOneDay = `[
 	{
 	  "sha": "fuga",
 	  "node_id": "fuga",
@@ -166,12 +166,12 @@ const ResultAll = `[
 		"author": {
 		  "name": "tabeesan",
 		  "email": "fuga",
-		  "date": "2021-05-10T07:10:55Z"
+		  "date": "2021-05-09T07:10:55Z"
 		},
 		"committer": {
 		  "name": "tabeesan",
 		  "email": "fuga",
-		  "date": "2021-05-10T07:10:55Z"
+		  "date": "2021-05-09T07:10:55Z"
 		},
 		"message": "AC",
 		"tree": {
