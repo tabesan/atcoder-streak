@@ -2,6 +2,7 @@ package commit
 
 import (
 	tm "atcoder-streak/timer"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,6 +19,7 @@ type Client struct {
 	URL           *url.URL
 	HTTPClient    *http.Client
 	edit          *tm.EditTime
+	timeoutFlag   bool
 }
 
 func (c *Client) createURL() {
@@ -40,14 +42,23 @@ func NewClient(name, repo string) *Client {
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 15,
 		},
-		edit: tm.NewEditTime(),
+		edit:        tm.NewEditTime(),
+		timeoutFlag: false,
 	}
 	c.createURL()
 	return c
 }
 
-func (c *Client) update() {
-	latest := (c.GetLastCommit())[0]
+func (c *Client) Timeouted() {
+	if c.updateFlag == false {
+		c.timeoutFlag = true
+	}
+}
+
+func (c *Client) update(ctx context.Context) {
+	resp, ok := c.GetLastCommit(ctx)
+	fmt.Println(ok)
+	latest := resp[0]
 	lastDate := c.edit.ConvJST(latest.Commit.Author.Date)
 	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(c.edit.Layout)
 	if c.latestCommit == DayAgo {
@@ -63,12 +74,18 @@ func (c *Client) ShowStreak() {
 }
 
 func (c *Client) FlagReset() {
+	if c.updateFlag == false && c.timeoutFlag == true {
+		c.InitStreak()
+		c.timeoutFlag = false
+	}
 	c.updateFlag = false
 }
 
-func (c *Client) UpdateStreak() {
+func (c *Client) UpdateStreak(ctx context.Context) {
 	if !c.updateFlag {
-		c.update()
+		c.update(ctx)
+		time.Sleep(20 * time.Second)
 		c.updateFlag = true
+		c.timeoutFlag = false
 	}
 }

@@ -82,6 +82,7 @@ func (m *MockClient) GetLastCommit() []Commits {
 }
 
 func (m *MockClient) InitStreak() {
+	c := NewClient(name, repo)
 	var commits []Commits
 	var err error
 	switch m.testData {
@@ -96,28 +97,26 @@ func (m *MockClient) InitStreak() {
 	}
 	mp := make(map[string]bool)
 	var days []string
-	var now time.Time
+	var target time.Time
 	var formatT string
-	var dayAgo time.Time
-	dayAgoUsed := 0
-	fmt.Println("d", dayAgo)
-	for _, v := range commits {
-		now = m.client.edit.ConvJST(v.Commit.Author.Date)
-		formatT = now.Format(m.client.edit.Layout)
-		if dayAgoUsed == 0 {
-			dayAgoUsed = 1
-			dayAgo = now
-		} else {
+	pre := "-1"
 
-		}
+	m.client.latestCommit = c.edit.ConvJST((commits[0].Commit.Author.Date)).Format(c.edit.Layout)
+	for _, v := range commits {
+		target = c.edit.ConvJST(v.Commit.Author.Date)
+		formatT = target.Format(c.edit.Layout)
 		if !mp[formatT] {
 			mp[formatT] = true
+			if !m.client.isStreak(target, pre) {
+				days = nil
+			}
+			pre = formatT
 			days = append(days, formatT)
 		}
 	}
-	m.client.latestCommit = days[0]
+
 	m.client.streak = len(days)
-	m.client.ShowStreak()
+	c.ShowStreak()
 }
 
 func TestClient_createURL(t *testing.T) {
@@ -179,6 +178,7 @@ func TestClient_InitStreak(t *testing.T) {
 		if err != nil {
 			t.Errorf("NewMockClient() missed at InitStreak()")
 		}
+		m.client = NewClient(name, repo)
 		m.InitStreak()
 		assert.Equal(t, latest, m.client.latestCommit)
 		assert.Equal(t, streak, m.client.streak)
@@ -191,6 +191,7 @@ func TestClient_InitStreak(t *testing.T) {
 		if err != nil {
 			t.Errorf("NewMockClient() missed at InitStreak()")
 		}
+		m.client = NewClient(name, repo)
 		m.testData = "oneDay"
 		m.InitStreak()
 		assert.Equal(t, latest, m.client.latestCommit)
