@@ -4,13 +4,13 @@ import (
 	cmt "atcoder-streak/commit"
 	tm "atcoder-streak/timer"
 	"context"
-	"fmt"
 	"time"
 )
 
 func main() {
 	client := cmt.NewClient(cmt.Name, cmt.Repository)
-	client.InitStreak()
+	cmt.NewGetter(client)
+	client.Getter.InitStreak()
 	timer := tm.NewTimer()
 	go timer.FlagTimer()
 	go timer.UpdateTimer()
@@ -18,15 +18,13 @@ func main() {
 	for {
 		select {
 		case <-timer.ChFlag:
-			client.FlagReset()
-			fmt.Println("flag")
+			client.ResetFlag()
 		case <-timer.ChUpdate:
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 			defer cancel()
 			client.UpdateStreak(ctx)
 			select {
 			case <-ctx.Done():
-				fmt.Println("timeout")
 				client.Timeouted()
 			}
 		}
