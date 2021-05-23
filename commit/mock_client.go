@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -32,81 +34,98 @@ type MockClient struct {
 	testData string
 }
 
-func NewMockClient(c *Client) {
+func NewMockClient(c *Client, testData ...string) {
 	m := &MockClient{
 		edit:     tm.NewEditTime(),
-		testData: "TwoDay",
+		testData: "twoDay",
+		client:   c,
 	}
-	m.client = c
+	for _, t := range testData {
+		m.testData = t
+	}
+	fmt.Println(m.testData)
+	c.Getter = m
 }
 
-func (*MockClient) GetCommit(ctx context.Context, req *http.Request) []Commits {
+func (*MockClient) GetCommit(ctx context.Context, req *http.Request) ([]Commits, error) {
 	if req.URL.String() == baseURL {
 		resp, err := toCommits(td.ResultAll)
 		if err != nil {
-			return nil
+			return nil, errors.Wrap(err, "toCommits error in GetCommit")
 		}
-		return resp
+		return resp, nil
 	} else if req.URL.String() == (baseURL + "?per_page=1") {
 		resp, err := toCommits(td.ResultLast)
 		if err != nil {
-			return nil
+			return nil, errors.Wrap(err, "toCommits error in GetCommit")
 		}
-		return resp
+		return resp, nil
 	}
-	return nil
+
+	return nil, errors.New("GetCommit error")
 }
 
-func (m *MockClient) GetAllCommit(ctx context.Context) ([]Commits, bool) {
+func (m *MockClient) GetAllCommit(ctx context.Context) ([]Commits, error) {
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
-		return nil, false
+		return nil, errors.Wrap(err, "NewRequest error in GetAllCommit")
 	}
-	return m.GetCommit(ctx, req), true
+	resp, err := m.GetCommit(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetCommit error in GetAllCommit")
+	}
+	return resp, nil
 }
 
-func (m *MockClient) GetLastCommit(ctx context.Context) ([]Commits, bool) {
+func (m *MockClient) GetLastCommit(ctx context.Context) ([]Commits, error) {
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
-		return nil, false
+		return nil, errors.Wrap(err, "NewRequest error in GetLastCommit")
 	}
 	u := req.URL.Query()
 	u.Set("per_page", "1")
 	req.URL.RawQuery = u.Encode()
-	return m.GetCommit(ctx, req), true
+	resp, err := m.GetCommit(ctx, req)
+	if err != nil {
+		return nil, errors.Wrap(err, "GetCommit error in GetLastCommit")
+	}
+	return resp, nil
 }
 
-func (m *MockClient) InitStreak() {
+func (m *MockClient) InitStreak() error {
 	var commits []Commits
 	var ok bool
 	var err error
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
+	client := NewClient(name, repo)
 	switch m.testData {
 	case "twoDay":
-		commits, ok = m.GetAllCommit(ctx)
+		fmt.Println("initStreak")
+		NewMockClient(client)
+		commits, err = m.GetAllCommit(ctx)
 		if !ok {
 			commits = nil
-			return
+			return errors.Wrap(err, "GetAllCommit error in InitStreak")
 		}
 	case "oneDay":
+		NewMockClient(client, "oneDay")
 		commits, err = toCommits(td.StreakOneDay)
 		if err != nil {
 			commits = nil
-			return
+			return errors.Wrap(err, "toCommits error in InitStreak")
 		}
 	}
+
 	mp := make(map[string]bool)
 	var days []string
-	var target time.Time
-	var formatT string
 	pre := "-1"
 
-	m.client.latestCommit = m.client.edit.ConvJST((commits[0].Commit.Author.Date)).Format(m.client.edit.Layout)
+	client.latestCommit = client.edit.ConvJST((commits[0].Commit.Author.Date)).Format(m.client.edit.Layout)
 	for _, v := range commits {
-		target = m.client.edit.ConvJST(v.Commit.Author.Date)
-		formatT = target.Format(m.client.edit.Layout)
+		target := client.edit.ConvJST(v.Commit.Author.Date)
+		formatT := target.Format(client.edit.Layout)
 		if !mp[formatT] {
 			mp[formatT] = true
 			if !m.isStreak(target, pre) {
@@ -117,11 +136,12 @@ func (m *MockClient) InitStreak() {
 		}
 	}
 
-	m.client.streak = len(days)
-	m.client.ShowStreak()
+	client.streak = len(days)
+	client.ShowStreak()
+	return nil
 }
 
-func (m *MockClient) Update(ctx context.Context) {
+func (m *MockClient) Update(ctx context.Context) error {
 	resp, ok := m.GetLastCommit(ctx)
 	fmt.Println(ok)
 	latest := resp[0]
@@ -131,6 +151,8 @@ func (m *MockClient) Update(ctx context.Context) {
 		m.client.streak += 1
 		m.client.latestCommit = lastDate.Format(m.client.edit.Layout)
 	}
+
+	return nil
 }
 
 func (m *MockClient) isStreak(target time.Time, pre string) bool {

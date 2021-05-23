@@ -11,6 +11,7 @@ func main() {
 	client := cmt.NewClient(cmt.Name, cmt.Repository)
 	cmt.NewGetter(client)
 	client.Getter.InitStreak()
+	client.ShowStreak()
 	timer := tm.NewTimer()
 	go timer.FlagTimer()
 	go timer.UpdateTimer()

@@ -2,8 +2,10 @@ package commit
 
 import (
 	td "atcoder-streak/commit/test_data"
+	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -11,8 +13,8 @@ import (
 func TestClient_createURL(t *testing.T) {
 	const path = "repos/" + name + "/" + repo + "/commits"
 	var err error
-	getter := NewMockClient()
-	c := NewClient(name, repo, getter)
+	c := NewClient(name, repo)
+	NewMockClient(c)
 	if c == nil {
 		t.Errorf("failed NewClient()")
 	}
@@ -32,13 +34,17 @@ func TestClient_createURL(t *testing.T) {
 }
 
 func TestClient_GetCommit(t *testing.T) {
-	m, err := NewMockClient()
-	if err != nil {
-		t.Errorf("NewMockClient() missed at GetCommit")
-	}
+	c := NewClient(name, repo)
+	NewMockClient(c)
 
 	t.Run("GetAll", func(t *testing.T) {
-		result := m.GetAllCommit()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+
+		result, err := c.Getter.GetAllCommit(ctx)
+		if err != nil {
+			t.Errorf("GetAllCommit error")
+		}
 		expect, err := toCommits(td.ResultAll)
 		if err != nil {
 			t.Errorf("toCommits missed")
@@ -49,7 +55,13 @@ func TestClient_GetCommit(t *testing.T) {
 	})
 
 	t.Run("GetLast", func(t *testing.T) {
-		result := m.GetLastCommit()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+
+		result, err := c.Getter.GetLastCommit(ctx)
+		if err != nil {
+			t.Errorf("GetLastCommit error")
+		}
 		expect, err := toCommits(td.ResultLast)
 		if err != nil {
 			t.Errorf("toCommits missed")
@@ -64,27 +76,23 @@ func TestClient_InitStreak(t *testing.T) {
 	t.Run("StreakTwoDays", func(t *testing.T) {
 		latest := "2021-05-11"
 		streak := 2
-		m, err := NewMockClient()
+		client := NewClient(name, repo)
+		NewMockClient(client)
+		err := client.Getter.InitStreak()
 		if err != nil {
-			t.Errorf("NewMockClient() missed at InitStreak()")
+			t.Errorf("InitStreak error")
 		}
-		m.client = NewClient(name, repo)
-		m.InitStreak()
-		assert.Equal(t, latest, m.client.latestCommit)
-		assert.Equal(t, streak, m.client.streak)
+		assert.Equal(t, latest, client.latestCommit)
+		assert.Equal(t, streak, client.streak)
 	})
 
 	t.Run("StreakOneDay", func(t *testing.T) {
 		latest := "2021-05-11"
 		streak := 1
-		m, err := NewMockClient()
-		if err != nil {
-			t.Errorf("NewMockClient() missed at InitStreak()")
-		}
-		m.client = NewClient(name, repo)
-		m.testData = "oneDay"
-		m.InitStreak()
-		assert.Equal(t, latest, m.client.latestCommit)
-		assert.Equal(t, streak, m.client.streak)
+		client := NewClient(name, repo)
+		NewMockClient(client, "oneDay")
+		client.Getter.InitStreak()
+		assert.Equal(t, latest, client.latestCommit)
+		assert.Equal(t, streak, client.streak)
 	})
 }
