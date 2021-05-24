@@ -34,10 +34,9 @@ func TestClient_createURL(t *testing.T) {
 }
 
 func TestClient_GetCommit(t *testing.T) {
-	c := NewClient(name, repo)
-	NewMockClient(c)
-
 	t.Run("GetAll", func(t *testing.T) {
+		c := NewClient(name, repo)
+		NewMockClient(c)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		defer cancel()
 
@@ -55,6 +54,8 @@ func TestClient_GetCommit(t *testing.T) {
 	})
 
 	t.Run("GetLast", func(t *testing.T) {
+		c := NewClient(name, repo)
+		NewMockClient(c)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		defer cancel()
 
@@ -78,7 +79,7 @@ func TestClient_InitStreak(t *testing.T) {
 		streak := 2
 		client := NewClient(name, repo)
 		NewMockClient(client)
-		err := client.Getter.InitStreak()
+		err := client.InitStreak()
 		if err != nil {
 			t.Errorf("InitStreak error")
 		}
@@ -91,7 +92,7 @@ func TestClient_InitStreak(t *testing.T) {
 		streak := 1
 		client := NewClient(name, repo)
 		NewMockClient(client, "oneDay")
-		client.Getter.InitStreak()
+		client.InitStreak()
 		assert.Equal(t, latest, client.latestCommit)
 		assert.Equal(t, streak, client.streak)
 	})
