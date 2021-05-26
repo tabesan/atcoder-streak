@@ -1,9 +1,8 @@
 package commit
 
 import (
-	td "atcoder-streak/commit/test_data"
 	"context"
-	"reflect"
+	"fmt"
 	"testing"
 	"time"
 
@@ -33,46 +32,6 @@ func TestClient_createURL(t *testing.T) {
 	t.Logf("Path: %s", c.URL.Path)
 }
 
-func TestClient_GetCommit(t *testing.T) {
-	t.Run("GetAll", func(t *testing.T) {
-		c := NewClient(name, repo)
-		NewMockClient(c)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-		defer cancel()
-
-		result, err := c.Getter.GetAllCommit(ctx)
-		if err != nil {
-			t.Errorf("GetAllCommit error")
-		}
-		expect, err := toCommits(td.ResultAll)
-		if err != nil {
-			t.Errorf("toCommits missed")
-		}
-		if !reflect.DeepEqual(result, expect) {
-			t.Errorf("result is not equals to expect")
-		}
-	})
-
-	t.Run("GetLast", func(t *testing.T) {
-		c := NewClient(name, repo)
-		NewMockClient(c)
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-		defer cancel()
-
-		result, err := c.Getter.GetLastCommit(ctx)
-		if err != nil {
-			t.Errorf("GetLastCommit error")
-		}
-		expect, err := toCommits(td.ResultLast)
-		if err != nil {
-			t.Errorf("toCommits missed")
-		}
-		if !reflect.DeepEqual(result, expect) {
-			t.Errorf("result is not equals to expect")
-		}
-	})
-}
-
 func TestClient_InitStreak(t *testing.T) {
 	t.Run("StreakTwoDays", func(t *testing.T) {
 		latest := "2021-05-11"
@@ -95,5 +54,56 @@ func TestClient_InitStreak(t *testing.T) {
 		client.InitStreak()
 		assert.Equal(t, latest, client.latestCommit)
 		assert.Equal(t, streak, client.streak)
+	})
+}
+
+func TestClient_isStreak(t *testing.T) {
+	c := NewClient(name, repo)
+	t.Run("later == -1", func(t *testing.T) {
+		later := "-1"
+		target := time.Now()
+		result := c.isStreak(target, later)
+		expect := true
+		if result != expect {
+			t.Errorf("pre == -1 error")
+		}
+	})
+
+	t.Run("Is streak", func(t *testing.T) {
+		target := c.edit.ConvJST(time.Date(2001, 05, 20, 23, 0, 0, 0, c.edit.ReferLocation()))
+		later := "2001-05-21"
+		result := c.isStreak(target, later)
+		expect := true
+		if result != expect {
+			t.Errorf("Is streak error")
+		}
+	})
+
+	t.Run("Is not streak", func(t *testing.T) {
+		target := c.edit.ConvJST(time.Date(2001, 05, 20, 23, 0, 0, 0, c.edit.ReferLocation()))
+		later := "2001-05-22"
+		result := c.isStreak(target, later)
+		expect := false
+		if result != expect {
+			t.Errorf("Is not streak error")
+		}
+	})
+}
+
+func TestClient_Update(t *testing.T) {
+	t.Run("Is streak", func(t *testing.T) {
+		c := NewClient(name, repo)
+		latest := time.Date(2021, 5, 10, 5, 0, 0, 0, time.UTC)
+		c.latestCommit = c.edit.ConvJST(latest).Format(c.edit.Layout)
+		c.streak = 1
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+		c.Update(ctx)
+		expectStreak := 2
+		fmt.Println("clatest", c.latestCommit)
+		if expectStreak != c.streak {
+			t.Errorf("streak update missed")
+		}
+
 	})
 }

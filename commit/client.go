@@ -72,20 +72,14 @@ func (c *Client) ResetFlag() {
 	c.updateFlag = false
 }
 
-func (c *Client) UpdateStreak(ctx context.Context) {
-	if !c.updateFlag {
-		c.Getter.Update(ctx)
-		c.updateFlag = true
-		c.timeoutFlag = false
-	}
-}
-
 func (c *Client) SetStreak(commits []Commits) error {
 	mp := make(map[string]bool)
 	var days []string
 	pre := "-1"
+	cnt := 0
 	c.latestCommit = c.edit.ConvJST((commits[0].Commit.Author.Date)).Format(c.edit.Layout)
 	for _, v := range commits {
+		cnt += 1
 		target := c.edit.ConvJST(v.Commit.Author.Date)
 		formatT := target.Format(c.edit.Layout)
 		if !mp[formatT] {
@@ -102,13 +96,13 @@ func (c *Client) SetStreak(commits []Commits) error {
 	return nil
 }
 
-func (c *Client) isStreak(target time.Time, pre string) bool {
-	if pre == "-1" {
+func (c *Client) isStreak(target time.Time, later string) bool {
+	if later == "-1" {
 		return true
 	}
 
 	dayLater := target.AddDate(0, 0, 1).Format(c.edit.Layout)
-	if dayLater == pre {
+	if dayLater == later {
 		return true
 	} else {
 		return false
@@ -141,4 +135,32 @@ func (c *Client) InitStreak() error {
 	}
 
 	return c.SetStreak(commits)
+}
+
+func (c *Client) Update(ctx context.Context) error {
+	resp, err := c.Getter.GetLastCommit(ctx)
+	if err != nil {
+		return errors.Wrap(err, "GetLastCommit missed in Update")
+	}
+
+	latest := resp[0]
+	lastDate := c.edit.ConvJST(latest.Commit.Author.Date).AddDate(0, 0, -1)
+	if lastDate.Format(c.edit.Layout) == c.latestCommit {
+		c.streak += 1
+		c.latestCommit = lastDate.Format(c.edit.Layout)
+	}
+	return nil
+}
+
+func (c *Client) UpdateStreak(ctx context.Context) {
+	if !c.updateFlag {
+		err := c.Update(ctx)
+		if err != nil {
+			c.timeoutFlag = false
+			fmt.Println("UpdateStreak error")
+			return
+		}
+		c.updateFlag = true
+		c.timeoutFlag = false
+	}
 }

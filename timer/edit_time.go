@@ -34,3 +34,7 @@ func (e *EditTime) ConvToSec(t time.Time) int {
 	toSec := jst.Hour()*3600 + jst.Minute()*60 + jst.Second()
 	return toSec
 }
+
+func (e *EditTime) ReferLocation() *time.Location {
+	return e.location
+}

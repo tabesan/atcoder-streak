@@ -124,16 +124,16 @@ func (m *MockClient) GetLastCommit(ctx context.Context) ([]Commits, error) {
 	return resp, nil
 }
 
-func (m *MockClient) Update(ctx context.Context) error {
-	resp, ok := m.GetLastCommit(ctx)
-	fmt.Println(ok)
-	latest := resp[0]
-	lastDate := m.edit.ConvJST(latest.Commit.Author.Date)
-	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(m.client.edit.Layout)
-	if m.client.latestCommit == DayAgo {
-		m.client.streak += 1
-		m.client.latestCommit = lastDate.Format(m.client.edit.Layout)
-	}
-
-	return nil
-}
+//func (m *MockClient) Update(ctx context.Context) error {
+//	resp, ok := m.GetLastCommit(ctx)
+//	fmt.Println(ok)
+//	latest := resp[0]
+//	lastDate := m.edit.ConvJST(latest.Commit.Author.Date)
+//	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(m.client.edit.Layout)
+//	if m.client.latestCommit == DayAgo {
+//		m.client.streak += 1
+//		m.client.latestCommit = lastDate.Format(m.client.edit.Layout)
+//	}
+//
+//	return nil
+//}

@@ -14,7 +14,6 @@ type Getter interface {
 	GetCommit(ctx context.Context, req *http.Request) ([]Commits, error)
 	GetLastCommit(ctx context.Context) ([]Commits, error)
 	GetAllCommit(ctx context.Context) ([]Commits, error)
-	Update(ctx context.Context) error
 	RefTestData() interface{}
 }
 
@@ -73,22 +72,6 @@ func (g *getter) GetAllCommit(ctx context.Context) ([]Commits, error) {
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	resp, err := g.GetCommit(ctx, req)
 	return resp, nil
-}
-
-func (g *getter) Update(ctx context.Context) error {
-	resp, err := g.GetLastCommit(ctx)
-	if err != nil {
-		return errors.Wrap(err, "GetLastCommit missed in Update")
-	}
-
-	latest := resp[0]
-	lastDate := g.edit.ConvJST(latest.Commit.Author.Date)
-	DayAgo := (lastDate.AddDate(0, 0, -1)).Format(g.client.edit.Layout)
-	if g.client.latestCommit == DayAgo {
-		g.client.streak += 1
-		g.client.latestCommit = lastDate.Format(g.client.edit.Layout)
-	}
-	return nil
 }
 
 func (g *getter) RefTestData() interface{} {
