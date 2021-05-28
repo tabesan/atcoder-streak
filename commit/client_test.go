@@ -2,7 +2,6 @@ package commit
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -93,17 +92,57 @@ func TestClient_isStreak(t *testing.T) {
 func TestClient_Update(t *testing.T) {
 	t.Run("Is streak", func(t *testing.T) {
 		c := NewClient(name, repo)
+		NewMockClient(c)
 		latest := time.Date(2021, 5, 10, 5, 0, 0, 0, time.UTC)
 		c.latestCommit = c.edit.ConvJST(latest).Format(c.edit.Layout)
 		c.streak = 1
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		defer cancel()
-		c.Update(ctx)
+		c.UpdateStreak(ctx)
 		expectStreak := 2
-		fmt.Println("clatest", c.latestCommit)
+		expectLatest := "2021-05-11"
+		if expectStreak != c.ReferStreak() {
+			t.Errorf("streak update missed")
+		}
+		if expectLatest != c.ReferLatestCommit() {
+			t.Errorf("latestCommit is wrong")
+		}
+	})
+
+	t.Run("Is not streak", func(t *testing.T) {
+		c := NewClient(name, repo)
+		NewMockClient(c)
+		latest := time.Date(2021, 5, 9, 5, 0, 0, 0, time.UTC)
+		c.latestCommit = c.edit.ConvJST(latest).Format(c.edit.Layout)
+		c.streak = 1
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+		c.Update(ctx)
+		expectStreak := 1
+		expectLatest := "2021-05-11"
 		if expectStreak != c.streak {
 			t.Errorf("streak update missed")
 		}
+		if expectLatest != c.latestCommit {
+			t.Errorf("latestCommit is wrong")
+		}
+	})
+}
 
+func TestClient_UpdateStreak(t *testing.T) {
+	t.Run("!updateFlag", func(t *testing.T) {
+		c := NewClient(name, repo)
+		NewMockClient(c)
+		c.updateFlag = false
+		c.timeoutFlag = true
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+		defer cancel()
+		c.UpdateStreak(ctx)
+		if !c.updateFlag {
+			t.Errorf("update missed")
+		}
+		if c.updateFlag && c.timeoutFlag {
+			t.Errorf("UpdateStreak error")
+		}
 	})
 }

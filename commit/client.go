@@ -72,7 +72,7 @@ func (c *Client) ResetFlag() {
 	c.updateFlag = false
 }
 
-func (c *Client) SetStreak(commits []Commits) error {
+func (c *Client) SetInitStreak(commits []Commits) error {
 	mp := make(map[string]bool)
 	var days []string
 	pre := "-1"
@@ -134,7 +134,7 @@ func (c *Client) InitStreak() error {
 		}
 	}
 
-	return c.SetStreak(commits)
+	return c.SetInitStreak(commits)
 }
 
 func (c *Client) Update(ctx context.Context) error {
@@ -144,11 +144,13 @@ func (c *Client) Update(ctx context.Context) error {
 	}
 
 	latest := resp[0]
-	lastDate := c.edit.ConvJST(latest.Commit.Author.Date).AddDate(0, 0, -1)
-	if lastDate.Format(c.edit.Layout) == c.latestCommit {
+	lastDate := c.edit.ConvJST(latest.Commit.Author.Date)
+	if lastDate.AddDate(0, 0, -1).Format(c.edit.Layout) == c.latestCommit {
 		c.streak += 1
-		c.latestCommit = lastDate.Format(c.edit.Layout)
+	} else {
+		c.streak = 1
 	}
+	c.latestCommit = lastDate.Format(c.edit.Layout)
 	return nil
 }
 
@@ -163,4 +165,12 @@ func (c *Client) UpdateStreak(ctx context.Context) {
 		c.updateFlag = true
 		c.timeoutFlag = false
 	}
+}
+
+func (c *Client) ReferStreak() int {
+	return c.streak
+}
+
+func (c *Client) ReferLatestCommit() string {
+	return c.latestCommit
 }
