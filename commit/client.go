@@ -52,12 +52,6 @@ func NewClient(name, repo string) *Client {
 	return c
 }
 
-func (c *Client) Timeouted() {
-	if c.updateFlag == false {
-		c.timeoutFlag = true
-	}
-}
-
 func (c *Client) ShowStreak() {
 	fmt.Println(c.streak)
 }
@@ -110,7 +104,7 @@ func (c *Client) isStreak(target time.Time, later string) bool {
 }
 
 func (c *Client) InitStreak() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	var commits []Commits
@@ -140,9 +134,8 @@ func (c *Client) InitStreak() error {
 func (c *Client) Update(ctx context.Context) error {
 	resp, err := c.Getter.GetLastCommit(ctx)
 	if err != nil {
-		return errors.Wrap(err, "GetLastCommit missed in Update")
+		err = errors.Wrap(err, "GetLastCommit missed in Update")
 	}
-
 	latest := resp[0]
 	lastDate := c.edit.ConvJST(latest.Commit.Author.Date)
 	if lastDate.AddDate(0, 0, -1).Format(c.edit.Layout) == c.latestCommit {
@@ -151,20 +144,41 @@ func (c *Client) Update(ctx context.Context) error {
 		c.streak = 1
 	}
 	c.latestCommit = lastDate.Format(c.edit.Layout)
-	return nil
+	return err
 }
 
-func (c *Client) UpdateStreak(ctx context.Context) {
+func (c *Client) UpdateStreak() error {
 	if !c.updateFlag {
-		err := c.Update(ctx)
-		if err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		var err error
+		endCh := make(chan string)
+		go func() {
+			err = c.Update(ctx)
+			if err != nil {
+				c.timeoutFlag = false
+				err = errors.Wrap(err, "Update error at UpdateStreak()")
+				return
+			}
+			c.updateFlag = true
 			c.timeoutFlag = false
-			fmt.Println("UpdateStreak error")
-			return
+			endCh <- "End"
+		}()
+
+		if err != nil {
+			return err
 		}
-		c.updateFlag = true
-		c.timeoutFlag = false
+
+		select {
+		case <-ctx.Done():
+			c.updateFlag = true
+			return errors.New("UpdateStreak timeout")
+		case <-endCh:
+			return nil
+		}
 	}
+
+	return nil
 }
 
 func (c *Client) ReferStreak() int {

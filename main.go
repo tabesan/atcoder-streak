@@ -3,8 +3,7 @@ package main
 import (
 	cmt "atcoder-streak/commit"
 	tm "atcoder-streak/timer"
-	"context"
-	"time"
+	"fmt"
 )
 
 func main() {
@@ -21,12 +20,9 @@ func main() {
 		case <-timer.ChFlag:
 			client.ResetFlag()
 		case <-timer.ChUpdate:
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-			defer cancel()
-			client.UpdateStreak(ctx)
-			select {
-			case <-ctx.Done():
-				client.Timeouted()
+			err := client.UpdateStreak()
+			if err != nil {
+				fmt.Println(err)
 			}
 		}
 	}

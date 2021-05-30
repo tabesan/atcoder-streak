@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -28,12 +29,14 @@ func toCommits(str string) ([]Commits, error) {
 }
 
 type RefTest struct {
-	testData string
+	testData    string
+	timeOutTest bool
 }
 
 func NewRefTest() *RefTest {
 	r := &RefTest{
-		testData: "twoDay",
+		testData:    "twoDay",
+		timeOutTest: false,
 	}
 	return r
 }
@@ -44,6 +47,14 @@ func (r *RefTest) SetTestData(str string) {
 
 func (r *RefTest) RefTestData() string {
 	return r.testData
+}
+
+func (r *RefTest) SetIsTimeOut() {
+	r.timeOutTest = true
+}
+
+func (r *RefTest) IsTimeOut() bool {
+	return r.timeOutTest
 }
 
 type MockClient struct {
@@ -64,7 +75,7 @@ func NewMockClient(c *Client, testData ...string) {
 	c.Getter = m
 }
 
-func (m *MockClient) RefTestData() interface{} {
+func (m *MockClient) RefTestPara() interface{} {
 	return m.refTest
 }
 
@@ -73,7 +84,7 @@ func (m *MockClient) GetCommit(ctx context.Context, req *http.Request) ([]Commit
 	var err error
 
 	if req.URL.String() == baseURL {
-		rtd := m.RefTestData().(*RefTest)
+		rtd := m.RefTestPara().(*RefTest)
 		oneOrTwo := rtd.RefTestData()
 		switch oneOrTwo {
 		case "oneDay":
@@ -98,6 +109,10 @@ func (m *MockClient) GetCommit(ctx context.Context, req *http.Request) ([]Commit
 }
 
 func (m *MockClient) GetAllCommit(ctx context.Context) ([]Commits, error) {
+	rtd := m.RefTestPara().(*RefTest)
+	if rtd.IsTimeOut() {
+		time.Sleep(time.Second * 15)
+	}
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest error in GetAllCommit")
@@ -110,6 +125,10 @@ func (m *MockClient) GetAllCommit(ctx context.Context) ([]Commits, error) {
 }
 
 func (m *MockClient) GetLastCommit(ctx context.Context) ([]Commits, error) {
+	rtd := m.RefTestPara().(*RefTest)
+	if rtd.IsTimeOut() {
+		time.Sleep(time.Second * 15)
+	}
 	req, err := http.NewRequest("GET", baseURL, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest error in GetLastCommit")

@@ -14,7 +14,7 @@ type Getter interface {
 	GetCommit(ctx context.Context, req *http.Request) ([]Commits, error)
 	GetLastCommit(ctx context.Context) ([]Commits, error)
 	GetAllCommit(ctx context.Context) ([]Commits, error)
-	RefTestData() interface{}
+	RefTestPara() interface{}
 }
 
 type getter struct {
@@ -74,6 +74,6 @@ func (g *getter) GetAllCommit(ctx context.Context) ([]Commits, error) {
 	return resp, nil
 }
 
-func (g *getter) RefTestData() interface{} {
+func (g *getter) RefTestPara() interface{} {
 	return nil
 }
