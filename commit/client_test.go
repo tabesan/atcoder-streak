@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	name = Name
+	repo = Repository
+)
+
 func TestClient_createURL(t *testing.T) {
 	fmt.Println("TestClient_createURL")
 	const path = "repos/" + name + "/" + repo + "/commits"

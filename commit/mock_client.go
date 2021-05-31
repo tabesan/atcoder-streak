@@ -13,8 +13,6 @@ import (
 )
 
 const (
-	name    = "tabesan"
-	repo    = "Atcoder"
 	baseURL = "https://api.github.com/repos/tabesan/Atcoder/commits"
 )
 
@@ -73,6 +71,7 @@ func NewMockClient(c *Client, testData ...string) {
 		m.refTest.testData = t
 	}
 	c.Getter = m
+	c.HTTPClient.Timeout = 3 * time.Second
 }
 
 func (m *MockClient) RefTestPara() interface{} {

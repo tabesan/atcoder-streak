@@ -30,7 +30,7 @@ func (c *Client) createURL() {
 	c.URL = &url.URL{
 		Scheme: "https",
 		Host:   "api.github.com",
-		Path:   "repos/" + name + "/" + repo + "/commits",
+		Path:   "repos/" + Name + "/" + Repository + "/commits",
 	}
 }
 
@@ -44,7 +44,7 @@ func NewClient(name, repo string) *Client {
 		updateFlag:    false,
 		timeoutFlag:   false,
 		HTTPClient: &http.Client{
-			Timeout: time.Second * 15,
+			Timeout: time.Second * 10,
 		},
 		edit: tm.NewEditTime(),
 	}
@@ -104,7 +104,7 @@ func (c *Client) isStreak(target time.Time, later string) bool {
 }
 
 func (c *Client) InitStreak() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), c.HTTPClient.Timeout)
 	defer cancel()
 
 	var commits []Commits
@@ -149,7 +149,7 @@ func (c *Client) Update(ctx context.Context) error {
 
 func (c *Client) UpdateStreak() error {
 	if !c.updateFlag {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		ctx, cancel := context.WithTimeout(context.Background(), c.HTTPClient.Timeout)
 		defer cancel()
 		var err error
 		endCh := make(chan string)
