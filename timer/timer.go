@@ -1,7 +1,6 @@
 package commit
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -49,18 +48,17 @@ func (c *ChTimer) FlagTimer() {
 	}
 }
 
-func (c *ChTimer) UpdateTimer(start ...int) {
+func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
 	now := time.Now()
 	curTime := now.Minute()*60 + now.Second()
-	for _, s := range start {
-		curTime = s
+	interval := time.Hour
+	for _, d := range duration {
+		interval = d
+		curTime = 3
 	}
-	fmt.Println(curTime)
 	initSleep := c.updateInter - curTime
-	time.Sleep(time.Duration(initSleep) * time.Second)
-	fmt.Println("seel")
-	for range time.Tick(time.Duration(c.updateInter) * time.Hour) {
-		fmt.Println("ok")
+	time.Sleep(time.Duration(initSleep) * interval)
+	for range time.Tick(time.Duration(c.updateInter) * interval) {
 		c.ChUpdate <- "UpdateStreak"
 	}
 }

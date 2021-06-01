@@ -2,15 +2,20 @@ package main
 
 import (
 	cm "atcoder-streak/commit"
+	nt "atcoder-streak/notify"
 	tm "atcoder-streak/timer"
-	"fmt"
+	"strconv"
 )
 
 func main() {
+	notify := nt.NewNotify()
 	client := cm.NewClient(cm.Name, cm.Repository)
 	cm.NewGetter(client)
 	client.InitStreak()
-	client.ShowStreak()
+	{
+		msg := "\nCurrent streak: " + strconv.Itoa(client.ReferStreak()) + "days"
+		notify.SendNotify(msg)
+	}
 	timer := tm.NewTimer()
 	go timer.FlagTimer()
 	go timer.UpdateTimer()
@@ -22,8 +27,11 @@ func main() {
 		case <-timer.ChUpdate:
 			err := client.UpdateStreak()
 			if err != nil {
-				fmt.Println(err)
+				msg := "Update error"
+				notify.SendNotify(msg)
 			}
+			msg := "Current streak \n" + strconv.Itoa(client.ReferStreak()) + "days"
+			notify.SendNotify(msg)
 		}
 	}
 
