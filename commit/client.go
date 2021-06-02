@@ -86,7 +86,7 @@ func (c *Client) SetInitStreak(commits []Commits) error {
 		}
 	}
 	c.streak = len(days)
-
+	c.timeoutFlag = false
 	return nil
 }
 
@@ -135,6 +135,7 @@ func (c *Client) Update(ctx context.Context) error {
 	resp, err := c.Getter.GetLastCommit(ctx)
 	if err != nil {
 		err = errors.Wrap(err, "GetLastCommit missed in Update")
+		return err
 	}
 	latest := resp[0]
 	lastDate := c.edit.ConvJST(latest.Commit.Author.Date)
@@ -165,16 +166,12 @@ func (c *Client) UpdateStreak() error {
 			endCh <- "End"
 		}()
 
-		if err != nil {
-			return err
-		}
-
 		select {
 		case <-ctx.Done():
-			c.updateFlag = true
+			c.timeoutFlag = true
 			return errors.New("UpdateStreak timeout")
 		case <-endCh:
-			return nil
+			return err
 		}
 	}
 
@@ -187,4 +184,8 @@ func (c *Client) ReferStreak() int {
 
 func (c *Client) ReferLatestCommit() string {
 	return c.latestCommit
+}
+
+func (c *Client) ReferTimeoutFlag() bool {
+	return c.timeoutFlag
 }

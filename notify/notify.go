@@ -15,7 +15,7 @@ type Notify struct {
 // Initialize notify
 func NewNotify() *Notify {
 	n := new(Notify)
-	n.accessToken = "***************"
+	n.accessToken = ""
 	n.notifyApi = "https://notify-api.line.me/api/notify"
 
 	return n

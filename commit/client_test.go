@@ -157,6 +157,12 @@ func TestClient_UpdateStreak(t *testing.T) {
 		if expectLatest != c.latestCommit {
 			t.Errorf("Updated latestCommit is wrong")
 		}
+		if !c.updateFlag {
+			t.Errorf("c.updateFlag is not true")
+		}
+		if c.timeoutFlag {
+			t.Errorf("c.timeoutflag is not false")
+		}
 	})
 	t.Run("!updateFlag", func(t *testing.T) {
 		fmt.Println("Test UpdateStreak !updateFlag")
@@ -182,5 +188,34 @@ func TestClient_UpdateStreak(t *testing.T) {
 		rtd := c.Getter.RefTestPara().(*RefTest)
 		rtd.SetIsTimeOut()
 		c.UpdateStreak()
+
+		if c.updateFlag {
+			t.Errorf("c.updateFlag is true")
+		}
+		if !c.timeoutFlag {
+			t.Errorf("c.timeoutFlag is false")
+		}
+	})
+}
+
+func TestClient_ResetFlag(t *testing.T) {
+	t.Run("Init", func(t *testing.T) {
+		c := NewClient(name, repo)
+		NewMockClient(c)
+		c.updateFlag = false
+		c.timeoutFlag = true
+		c.streak = 1
+		expectStreak := 2
+		c.ResetFlag()
+
+		if c.timeoutFlag {
+			t.Errorf("c.timeoutFlag is not updated")
+		}
+		if c.updateFlag {
+			t.Errorf("c.updateFlag is not reseted")
+		}
+		if c.streak != expectStreak {
+			t.Errorf("streak is not initialized")
+		}
 	})
 }
