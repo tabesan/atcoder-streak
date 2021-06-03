@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -15,7 +16,7 @@ type Notify struct {
 // Initialize notify
 func NewNotify() *Notify {
 	n := new(Notify)
-	n.accessToken = ""
+	n.accessToken = os.Getenv("TOKEN")
 	n.notifyApi = "https://notify-api.line.me/api/notify"
 
 	return n
