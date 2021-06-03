@@ -21,7 +21,7 @@ func NewTimer() *ChTimer {
 		ChUpdate:    make(chan string),
 		location:    setLocation(),
 		edit:        NewEditTime(),
-		updateInter: 60 * 60,
+		updateInter: 30,
 		flagInter:   24 * 60 * 60,
 	}
 
@@ -51,13 +51,16 @@ func (c *ChTimer) FlagTimer() {
 func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
 	now := time.Now()
 	curTime := now.Minute()*60 + now.Second()
-	interval := time.Hour
+	interval := time.Minute
 	for _, d := range duration {
 		interval = d
 		curTime = 3
 	}
 	initSleep := c.updateInter - curTime
-	time.Sleep(time.Duration(initSleep) * interval)
+	if initSleep < 0 {
+		initSleep *= -1
+	}
+	time.Sleep(time.Duration(initSleep) * time.Second)
 	for range time.Tick(time.Duration(c.updateInter) * interval) {
 		c.ChUpdate <- "UpdateStreak"
 	}
