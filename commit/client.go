@@ -161,7 +161,7 @@ func (c *Client) UpdateStreak() error {
 				err = errors.Wrap(err, "Update error at UpdateStreak()")
 				return
 			}
-			c.updateFlag = true
+			// c.updateFlag = true
 			c.timeoutFlag = false
 			endCh <- "End"
 		}()
@@ -188,4 +188,12 @@ func (c *Client) ReferLatestCommit() string {
 
 func (c *Client) ReferTimeoutFlag() bool {
 	return c.timeoutFlag
+}
+
+func (c *Client) SetUpdateFlag() {
+	c.updateFlag = true
+}
+
+func (c *Client) ReferUpdateFlag() bool {
+	return c.updateFlag
 }

@@ -58,13 +58,16 @@ func main() {
 					errCount = 0
 				}
 			}
-			err := client.UpdateStreak()
-			if err != nil {
-				msg := "Update error"
+			if !client.ReferUpdateFlag() {
+				client.SetUpdateFlag()
+				err := client.UpdateStreak()
+				if err != nil {
+					msg := "Update error"
+					notify.SendNotify(msg)
+				}
+				msg := "Current streak \n" + strconv.Itoa(client.ReferStreak()) + "days"
 				notify.SendNotify(msg)
 			}
-			msg := "Current streak \n" + strconv.Itoa(client.ReferStreak()) + "days"
-			notify.SendNotify(msg)
 		}
 	}
 
