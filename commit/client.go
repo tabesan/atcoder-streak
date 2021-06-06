@@ -19,6 +19,7 @@ type Client struct {
 	LongestStreak int
 	updateFlag    bool
 	timeoutFlag   bool
+	resetFlag     bool
 	HTTPClient    *http.Client
 	URL           *url.URL
 	edit          *tm.EditTime
@@ -56,6 +57,14 @@ func (c *Client) ShowStreak() {
 	fmt.Println(c.streak)
 }
 
+func (c *Client) SetStreak(s int) {
+	c.streak = s
+}
+
+func (c *Client) SetLatest(l string) {
+	c.latestCommit = l
+}
+
 func (c *Client) ResetFlag() {
 	if c.updateFlag == false && c.timeoutFlag == true {
 		c.rockFlag = true
@@ -70,22 +79,29 @@ func (c *Client) SetInitStreak(commits []Commits) error {
 	mp := make(map[string]bool)
 	var days []string
 	pre := "-1"
-	cnt := 0
+	useCurStreak := false
 	c.latestCommit = c.edit.ConvJST((commits[0].Commit.Author.Date)).Format(c.edit.Layout)
 	for _, v := range commits {
-		cnt += 1
 		target := c.edit.ConvJST(v.Commit.Author.Date)
 		formatT := target.Format(c.edit.Layout)
 		if !mp[formatT] {
 			mp[formatT] = true
 			if !c.isStreak(target, pre) {
-				days = nil
+				break
+			}
+			if c.latestCommit == formatT && c.streak != 0 {
+				useCurStreak = true
+				break
 			}
 			pre = formatT
 			days = append(days, formatT)
 		}
 	}
-	c.streak = len(days)
+	if useCurStreak {
+		c.streak = len(days) + c.streak
+	} else {
+		c.streak = len(days)
+	}
 	c.timeoutFlag = false
 	return nil
 }
@@ -139,13 +155,16 @@ func (c *Client) Update(ctx context.Context) error {
 	}
 	latest := resp[0]
 	lastDate := c.edit.ConvJST(latest.Commit.Author.Date)
+	if lastDate.Format(c.edit.Layout) == c.latestCommit {
+		return nil
+	}
 	if lastDate.AddDate(0, 0, -1).Format(c.edit.Layout) == c.latestCommit {
 		c.streak += 1
 	} else {
 		c.streak = 1
 	}
 	c.latestCommit = lastDate.Format(c.edit.Layout)
-	return err
+	return nil
 }
 
 func (c *Client) UpdateStreak() error {
@@ -161,7 +180,7 @@ func (c *Client) UpdateStreak() error {
 				err = errors.Wrap(err, "Update error at UpdateStreak()")
 				return
 			}
-			// c.updateFlag = true
+			c.updateFlag = true
 			c.timeoutFlag = false
 			endCh <- "End"
 		}()
@@ -190,10 +209,18 @@ func (c *Client) ReferTimeoutFlag() bool {
 	return c.timeoutFlag
 }
 
-func (c *Client) SetUpdateFlag() {
-	c.updateFlag = true
+func (c *Client) SetUpdateFlag(tf bool) {
+	c.updateFlag = tf
 }
 
 func (c *Client) ReferUpdateFlag() bool {
 	return c.updateFlag
+}
+
+func (c *Client) SetResetFlag(f bool) {
+	c.resetFlag = f
+}
+
+func (c *Client) ReferResetFlag() bool {
+	return c.resetFlag
 }

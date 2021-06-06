@@ -34,10 +34,12 @@ func (c *ChTimer) FlagTimer() {
 		wait int
 	)
 
-	curTime := c.edit.ConvToSec(time.Now())
-	initSleep := c.flagInter - curTime
-
-	time.Sleep(time.Duration(initSleep) * time.Second)
+	if c.edit.ConvJST(time.Now()).Hour() != 0 {
+		curTime := c.edit.ConvToSec(time.Now())
+		initSleep := c.flagInter - curTime
+		time.Sleep(time.Duration(initSleep) * time.Second)
+	}
+	c.ChFlag <- "UpdateFlag"
 	for range time.Tick(time.Duration(c.flagInter) * time.Second) {
 		now = c.edit.ConvJST(time.Now())
 		if now.Hour() != 0 {
@@ -50,17 +52,19 @@ func (c *ChTimer) FlagTimer() {
 
 func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
 	now := time.Now()
-	curTime := now.Minute()*60 + now.Second()
+	curTime := (now.Minute()%30)*60 + now.Second()
 	interval := time.Minute
 	for _, d := range duration {
 		interval = d
 		curTime = 3
 	}
-	initSleep := c.updateInter - curTime
+	initSleep := c.updateInter*60 - curTime
 	if initSleep < 0 {
 		initSleep *= -1
 	}
+	c.ChUpdate <- "UpdateStreak"
 	time.Sleep(time.Duration(initSleep) * time.Second)
+	c.ChUpdate <- "UpdateStreak"
 	for range time.Tick(time.Duration(c.updateInter) * interval) {
 		c.ChUpdate <- "UpdateStreak"
 	}

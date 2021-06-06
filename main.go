@@ -9,12 +9,24 @@ import (
 )
 
 func main() {
+
 	notify := nt.NewNotify()
 	client := cm.NewClient(cm.Name, cm.Repository)
 	cm.NewGetter(client)
 	initTrials := 0
+	newStreak := false
 	for {
-		err := client.InitStreak()
+		streak, latest, updateFlag, resetFlag, err := client.DownloadData()
+		if err != nil {
+			time.Sleep(time.Minute * 30)
+			continue
+		}
+
+		client.SetStreak(streak)
+		client.SetLatest(latest)
+		client.SetUpdateFlag(updateFlag)
+		client.SetResetFlag(resetFlag)
+		err = client.InitStreak()
 		if err != nil {
 			initTrials += 1
 		} else {
@@ -27,46 +39,45 @@ func main() {
 			time.Sleep(1 * time.Hour)
 			initTrials = 0
 		}
+
+		if latest != client.ReferLatestCommit() {
+			newStreak = true
+			err := client.UploadData()
+			if err != nil {
+				time.Sleep(time.Minute * 30)
+				continue
+			}
+		}
 	}
 
-	{
-		msg := "\nCurrent streak: " + strconv.Itoa(client.ReferStreak()) + "days"
+	if newStreak {
+		msg := "Current streak: " + strconv.Itoa(client.ReferStreak()) + "days"
 		notify.SendNotify(msg)
 	}
+
 	timer := tm.NewTimer()
 	go timer.FlagTimer()
 	go timer.UpdateTimer()
 
-	errCount := 0
-	const errLimit = 5
 	for {
 		select {
 		case <-timer.ChFlag:
+			msg := "call ResetFlag()"
+			notify.SendNotify(msg)
 			client.ResetFlag()
+			client.UploadData()
 		case <-timer.ChUpdate:
-			if client.ReferTimeoutFlag() {
-				err := client.InitStreak()
-				if err != nil {
-					errCount += 1
-				} else {
-					errCount = 0
-				}
-
-				if errCount == errLimit {
-					msg := "InitStreak() missed errLimit times"
-					notify.SendNotify(msg)
-					errCount = 0
-				}
-			}
 			if !client.ReferUpdateFlag() {
-				client.SetUpdateFlag()
 				err := client.UpdateStreak()
 				if err != nil {
 					msg := "Update error"
 					notify.SendNotify(msg)
 				}
-				msg := "Current streak \n" + strconv.Itoa(client.ReferStreak()) + "days"
-				notify.SendNotify(msg)
+				if client.ReferUpdateFlag() {
+					msg := "\nCurrent streak " + strconv.Itoa(client.ReferStreak()) + "days"
+					notify.SendNotify(msg)
+					client.UploadData()
+				}
 			}
 		}
 	}
