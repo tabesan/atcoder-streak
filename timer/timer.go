@@ -72,11 +72,11 @@ func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
 }
 
 func (c *ChTimer) Timer() {
-	const interval = 12 * 60 * 60
+	const interval = 24 * 60 * 60
 	now := c.edit.ConvToSec(time.Now())
 	time.Sleep(time.Duration(interval-now) * time.Second)
 	c.ChUpdate <- "Update"
-	for range time.Tick(time.Hour * 24) {
+	for range time.Tick(time.Hour * 12) {
 		c.ChUpdate <- "Update"
 	}
 }
