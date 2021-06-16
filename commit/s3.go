@@ -33,18 +33,16 @@ func (c *Client) NewSession() (*session.Session, error) {
 	return session, err
 }
 
-func (c *Client) DownloadData() (int, string, bool, bool, error) {
+func (c *Client) DownloadData() (int, string, error) {
 	session, err := c.NewSession()
 	svc := s3.New(session)
-
 	obj, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
 	})
 	if err != nil {
-		return 0, "", false, false, errors.Wrap(err, "GetObject from aws error")
+		return 0, "", errors.Wrap(err, "GetObject from aws error")
 	}
-
 	rc := obj.Body
 	defer rc.Close()
 	buf := new(bytes.Buffer)
@@ -52,15 +50,14 @@ func (c *Client) DownloadData() (int, string, bool, bool, error) {
 	data := strings.Split(buf.String(), " ")
 	streak, err := strconv.Atoi(data[0])
 	latest := data[1]
-	updateFlag, err := strconv.ParseBool(data[2])
-	resetFlag, err := strconv.ParseBool(data[3])
-	return streak, latest, updateFlag, resetFlag, nil
+
+	return streak, latest, nil
 }
 
 func (c *Client) UploadData() error {
 	session, err := c.NewSession()
 	uploader := s3manager.NewUploader(session)
-	newInfo := strings.Join([]string{strconv.Itoa(c.streak), c.latestCommit, strconv.FormatBool(c.updateFlag), strconv.FormatBool(c.resetFlag)}, " ")
+	newInfo := strings.Join([]string{strconv.Itoa(c.streak), c.latestCommit}, " ")
 	err = ioutil.WriteFile("streak.txt", []byte(newInfo), 0664)
 	if err != nil {
 		return errors.Wrap(err, "WriteFile error")

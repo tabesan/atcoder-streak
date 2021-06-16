@@ -4,6 +4,7 @@ import (
 	cm "atcoder-streak/commit"
 	nt "atcoder-streak/notify"
 	tm "atcoder-streak/timer"
+	"fmt"
 	"strconv"
 	"time"
 )
@@ -16,21 +17,17 @@ func main() {
 	initTrials := 0
 	newStreak := false
 	for {
-		streak, latest, updateFlag, resetFlag, err := client.DownloadData()
+		streak, latest, err := client.DownloadData()
 		if err != nil {
 			time.Sleep(time.Minute * 30)
 			continue
 		}
-
 		client.SetStreak(streak)
 		client.SetLatest(latest)
-		client.SetUpdateFlag(updateFlag)
-		client.SetResetFlag(resetFlag)
 		err = client.InitStreak()
 		if err != nil {
 			initTrials += 1
-		} else {
-			break
+			continue
 		}
 
 		if initTrials == 10 {
@@ -41,45 +38,82 @@ func main() {
 		}
 
 		if latest != client.ReferLatestCommit() {
+			fmt.Println("Latest", latest, "Ref", client.ReferLatestCommit())
 			newStreak = true
 			err := client.UploadData()
 			if err != nil {
-				time.Sleep(time.Minute * 30)
-				continue
+				for {
+					time.Sleep(time.Minute * 30)
+					err = client.UploadData()
+					if err == nil {
+						break
+					}
+				}
 			}
 		}
+		break
 	}
 
 	if newStreak {
-		msg := "Current streak: " + strconv.Itoa(client.ReferStreak()) + "days"
+		msg := "Current streak: " + strconv.Itoa(client.ReferStreak()) + " days"
 		notify.SendNotify(msg)
 	}
 
 	timer := tm.NewTimer()
-	go timer.FlagTimer()
-	go timer.UpdateTimer()
+	go timer.Timer()
 
-	for {
+	/*for {
 		select {
 		case <-timer.ChFlag:
-			msg := "call ResetFlag()"
-			notify.SendNotify(msg)
-			client.ResetFlag()
-			client.UploadData()
+			if client.ConvJST(time.Now()).Hour() == 0 && !client.ReferResetFlag() {
+				msg := "call ResetFlag()"
+				notify.SendNotify(msg)
+				client.ResetFlag()
+				client.UploadData()
+			}
 		case <-timer.ChUpdate:
+			if client.ConvJST(time.Now()).Hour() != 0 {
+				client.SetResetFlag(false)
+			}
 			if !client.ReferUpdateFlag() {
-				err := client.UpdateStreak()
-				if err != nil {
-					msg := "Update error"
-					notify.SendNotify(msg)
-				}
 				if client.ReferUpdateFlag() {
 					msg := "\nCurrent streak " + strconv.Itoa(client.ReferStreak()) + "days"
 					notify.SendNotify(msg)
+					err := client.UpdateStreak()
+					if err != nil {
+						msg := "Update error"
+						notify.SendNotify(msg)
+					}
 					client.UploadData()
 				}
 			}
 		}
-	}
+	}*/
 
+	for {
+		select {
+		case <-timer.ChUpdate:
+			var err error
+			err = client.InitStreak()
+			if err != nil {
+				for {
+					time.Sleep(30 * time.Minute)
+					err = client.InitStreak()
+					if err == nil {
+						break
+					}
+				}
+			}
+			msg := "Current Streak " + strconv.Itoa(client.ReferStreak()) + " days"
+			notify.SendNotify(msg)
+			err = client.UploadData()
+			if err != nil {
+				for {
+					time.Sleep(30 * time.Minute)
+					err = client.UploadData()
+				}
+			}
+		default:
+		}
+	}
 }

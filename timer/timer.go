@@ -17,7 +17,7 @@ type ChTimer struct {
 
 func NewTimer() *ChTimer {
 	ct := &ChTimer{
-		ChFlag:      make(chan string),
+		//ChFlag:      make(chan string),
 		ChUpdate:    make(chan string),
 		location:    setLocation(),
 		edit:        NewEditTime(),
@@ -34,24 +34,25 @@ func (c *ChTimer) FlagTimer() {
 		wait int
 	)
 
+	c.ChFlag <- "ResetFlag"
 	if c.edit.ConvJST(time.Now()).Hour() != 0 {
 		curTime := c.edit.ConvToSec(time.Now())
 		initSleep := c.flagInter - curTime
 		time.Sleep(time.Duration(initSleep) * time.Second)
 	}
-	c.ChFlag <- "UpdateFlag"
+	c.ChFlag <- "ResetFlag"
 	for range time.Tick(time.Duration(c.flagInter) * time.Second) {
 		now = c.edit.ConvJST(time.Now())
 		if now.Hour() != 0 {
 			wait = c.flagInter - c.edit.ConvToSec(now)
 			time.Sleep(time.Duration(wait) * time.Second)
 		}
-		c.ChFlag <- "UpdateFlag"
+		c.ChFlag <- "ResetFlag"
 	}
 }
 
 func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
-	now := time.Now()
+	now := c.edit.ConvJST(time.Now())
 	curTime := (now.Minute()%30)*60 + now.Second()
 	interval := time.Minute
 	for _, d := range duration {
@@ -67,5 +68,15 @@ func (c *ChTimer) UpdateTimer(duration ...time.Duration) {
 	c.ChUpdate <- "UpdateStreak"
 	for range time.Tick(time.Duration(c.updateInter) * interval) {
 		c.ChUpdate <- "UpdateStreak"
+	}
+}
+
+func (c *ChTimer) Timer() {
+	const interval = 12 * 60 * 60
+	now := c.edit.ConvToSec(time.Now())
+	time.Sleep(time.Duration(interval-now) * time.Second)
+	c.ChUpdate <- "Update"
+	for range time.Tick(time.Hour * 24) {
+		c.ChUpdate <- "Update"
 	}
 }

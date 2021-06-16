@@ -72,6 +72,7 @@ func (c *Client) ResetFlag() {
 		c.timeoutFlag = false
 	}
 	c.rockFlag = false
+	c.resetFlag = true
 	c.updateFlag = false
 }
 
@@ -80,23 +81,33 @@ func (c *Client) SetInitStreak(commits []Commits) error {
 	var days []string
 	pre := "-1"
 	useCurStreak := false
+	isNotStreak := false
+	preLatest := c.latestCommit
 	c.latestCommit = c.edit.ConvJST((commits[0].Commit.Author.Date)).Format(c.edit.Layout)
 	for _, v := range commits {
 		target := c.edit.ConvJST(v.Commit.Author.Date)
 		formatT := target.Format(c.edit.Layout)
 		if !mp[formatT] {
 			mp[formatT] = true
+
 			if !c.isStreak(target, pre) {
+				isNotStreak = true
 				break
 			}
-			if c.latestCommit == formatT && c.streak != 0 {
+
+			if (preLatest == formatT) && (c.streak != 0) {
 				useCurStreak = true
 				break
 			}
+
 			pre = formatT
 			days = append(days, formatT)
 		}
+		if isNotStreak {
+			break
+		}
 	}
+
 	if useCurStreak {
 		c.streak = len(days) + c.streak
 	} else {
@@ -197,6 +208,9 @@ func (c *Client) UpdateStreak() error {
 	return nil
 }
 
+func (c *Client) ConvJST(t time.Time) time.Time {
+	return c.edit.ConvJST(t)
+}
 func (c *Client) ReferStreak() int {
 	return c.streak
 }
