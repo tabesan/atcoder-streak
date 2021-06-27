@@ -17,7 +17,11 @@ func main() {
 	initTrials := 0
 	newStreak := false
 	for {
-		streak, latest, err := client.DownloadData()
+		streak, latest, update, err := client.DownloadData()
+		if client.IsUpdated(update) {
+			break
+		}
+
 		if err != nil {
 			time.Sleep(time.Minute * 30)
 			continue
@@ -57,6 +61,13 @@ func main() {
 	if newStreak {
 		msg := "Current streak: " + strconv.Itoa(client.ReferStreak()) + " days"
 		notify.SendNotify(msg)
+		err := client.UploadData()
+		if err != nil {
+			for {
+				time.Sleep(30 * time.Minute)
+				err = client.UploadData()
+			}
+		}
 	}
 
 	timer := tm.NewTimer()
@@ -93,7 +104,12 @@ func main() {
 	for {
 		select {
 		case <-timer.ChUpdate:
-			var err error
+			latest := client.ReferLatestCommit()
+			_, _, update, err := client.DownloadData()
+			if err != nil || client.IsUpdated(update) {
+				continue
+			}
+
 			err = client.InitStreak()
 			if err != nil {
 				for {
@@ -104,6 +120,11 @@ func main() {
 					}
 				}
 			}
+
+			if latest == client.ReferLatestCommit() {
+				continue
+			}
+
 			msg := "Current Streak " + strconv.Itoa(client.ReferStreak()) + " days"
 			notify.SendNotify(msg)
 			err = client.UploadData()

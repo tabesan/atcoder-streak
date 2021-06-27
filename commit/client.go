@@ -238,3 +238,12 @@ func (c *Client) SetResetFlag(f bool) {
 func (c *Client) ReferResetFlag() bool {
 	return c.resetFlag
 }
+
+func (c *Client) IsUpdated(date string) bool {
+
+	if c.edit.Today() == date {
+		return true
+	} else {
+		return false
+	}
+}

@@ -38,3 +38,10 @@ func (e *EditTime) ConvToSec(t time.Time) int {
 func (e *EditTime) ReferLocation() *time.Location {
 	return e.location
 }
+
+func (e *EditTime) Today() string {
+	now := e.ConvJST(time.Now())
+	today := now.Format(e.Layout)
+
+	return today
+}
